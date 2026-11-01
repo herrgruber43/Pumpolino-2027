@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="de-CH" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pumpolino — Systeme, die bewegen</title>
+<meta name="description" content="Pumpolino baut die Betriebsebene für alles, was nicht aus dem Blick geraten darf: Service an Industriepumpen, Provenienz von Kunstwerken und die Aufzeichnungen, die beide überdauern.">
+<link rel="canonical" href="https://pumpolino.com/de/">
+<link rel="alternate" hreflang="en" href="https://pumpolino.com/">
+<link rel="alternate" hreflang="de-CH" href="https://pumpolino.com/de/">
+<link rel="alternate" hreflang="fr-CH" href="https://pumpolino.com/fr/">
+<link rel="alternate" hreflang="x-default" href="https://pumpolino.com/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="de_CH">
+<meta property="og:url" content="https://pumpolino.com/de/">
+<meta property="og:title" content="Pumpolino — Systeme, die bewegen">
+<meta property="og:description" content="Präzision im Umgang mit Information, Verantwortung und Zeit. Prozessintelligenz, Kunstprovenienz, industrielle Anlagenbetreuung.">
+<meta property="og:image" content="https://pumpolino.com/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0A0D0F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230A0D0F'/%3E%3Cg fill='none' stroke='%23E8ECEE' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M16 10 Q22 11 23 18'/%3E%3Cpath d='M21 19 Q19 24 13 24'/%3E%3Cpath d='M11 21 Q8 16 11 11'/%3E%3C/g%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23E4572E'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   PUMPOLINO — Direction C "Flow Field"
+   Single-file build. No dependencies. One rAF loop.
+   Regimes: laminar = control · turbulent = load
+            sediment = discretion · cavitation = failure
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0A0D0F;
+  --bg-2:#0E1416;
+  --panel:#11171A;
+  --ink:#E8ECEE;
+  --ink-2:#B6C0C6;
+  --muted:#939DA3;
+  --rule:#1F282D;
+  --rule-2:#2E3940;
+  --laminar:#5FBFA8;
+  --trans:#9CBACE;
+  --turb:#E4572E;
+  --turb-text:#F2825C;
+  --f:'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --m:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --gut:clamp(20px,5vw,64px);
+  --maxw:1180px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--f);font-size:17px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+img,canvas{max-width:100%;display:block}
+.shell{max-width:var(--maxw);margin:0 auto;padding-inline:var(--gut)}
+
+/* focus — visible everywhere, the old site had none */
+:focus-visible{outline:2px solid var(--laminar);outline-offset:3px;border-radius:2px}
+
+.skip{
+  position:absolute;left:-9999px;top:0;z-index:999;
+  background:var(--laminar);color:#05100D;font-weight:600;
+  padding:12px 20px;font-size:15px;text-decoration:none;
+}
+.skip:focus{left:0}
+
+/* ── header ───────────────────────────────────────────── */
+.hdr{
+  position:sticky;top:0;z-index:60;
+  background:rgba(10,13,15,.72);backdrop-filter:blur(12px);
+  border-bottom:1px solid transparent;transition:border-color .25s,background .25s;
+}
+.hdr.stuck{border-bottom-color:var(--rule);background:rgba(10,13,15,.94)}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;gap:20px;
+  min-height:68px;max-width:var(--maxw);margin:0 auto;padding-inline:var(--gut)}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink);
+  min-height:44px;padding:4px 0}
+.brand canvas{width:30px;height:30px;flex-shrink:0}
+.wm{font-size:21px;font-weight:700;letter-spacing:-.035em;line-height:1}
+.wm em{font-style:normal;color:var(--turb)}
+
+.navwrap{display:flex;align-items:center;gap:6px}
+.nav{display:flex;gap:4px}
+.nav a{
+  position:relative;display:inline-flex;align-items:center;min-height:44px;
+  padding:0 12px 2px;font-size:14px;font-weight:500;letter-spacing:.015em;
+  color:var(--ink-2);text-decoration:none;transition:color .2s;
+}
+.nav a:hover,.nav a:focus-visible{color:var(--ink)}
+.nav a svg{position:absolute;left:12px;right:12px;bottom:11px;width:calc(100% - 24px);height:8px;overflow:visible}
+.nav a path{fill:none;stroke:var(--laminar);stroke-width:1.5;stroke-linecap:round;
+  stroke-dasharray:150;stroke-dashoffset:150;transition:stroke-dashoffset .5s cubic-bezier(.4,0,.15,1)}
+.nav a:hover path,.nav a:focus-visible path{stroke-dashoffset:0}
+.nav a.rough path{stroke:var(--turb)}
+.nav a.calm path{stroke:var(--trans)}
+.navcta{
+  display:inline-flex;align-items:center;min-height:44px;padding:0 18px;margin-left:8px;
+  border:1px solid var(--turb);color:var(--ink);font-size:14px;font-weight:600;
+  text-decoration:none;transition:background .2s,color .2s;
+}
+.navcta:hover,.navcta:focus-visible{background:var(--turb);color:#0A0D0F}
+
+.burger{display:none;background:none;border:1px solid var(--rule-2);color:var(--ink);
+  width:44px;height:44px;cursor:pointer;align-items:center;justify-content:center;padding:0}
+.burger svg{width:18px;height:14px}
+
+/* ── hero ─────────────────────────────────────────────── */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--rule)}
+#f-hero{position:absolute;inset:0;width:100%;height:100%}
+.hero-veil{position:absolute;inset:0;
+  background:linear-gradient(100deg,var(--bg) 12%,rgba(10,13,15,.80) 42%,rgba(10,13,15,.22) 76%,rgba(10,13,15,0) 100%)}
+.hero-in{position:relative;z-index:2;padding-block:clamp(56px,9vw,104px) clamp(64px,10vw,120px)}
+.eyebrow{
+  display:flex;align-items:center;gap:12px;margin:0 0 22px;
+  font-family:var(--m);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--laminar);
+}
+.eyebrow::before{content:"";width:34px;height:1px;background:var(--laminar);flex-shrink:0}
+h1{
+  font-size:clamp(40px,7.6vw,82px);font-weight:700;line-height:.97;letter-spacing:-.045em;
+  margin:0 0 26px;max-width:16ch;text-wrap:balance;
+}
+h1 em{font-style:italic;font-weight:400;color:var(--trans)}
+.hero p{font-size:clamp(17px,1.9vw,20px);color:var(--ink-2);max-width:52ch;margin:0 0 34px}
+.btns{display:flex;flex-wrap:wrap;gap:14px}
+.btn-p,.btn-s{display:inline-flex;align-items:center;justify-content:center;min-height:50px;
+  padding:0 26px;font-size:15px;font-weight:600;letter-spacing:.02em;text-decoration:none;
+  cursor:pointer;border:1px solid transparent;transition:background .2s,color .2s,border-color .2s}
+.btn-p{background:var(--turb);color:#0A0D0F}
+.btn-p:hover,.btn-p:focus-visible{background:#F2825C}
+.btn-s{border-color:var(--rule-2);color:var(--ink)}
+.btn-s:hover,.btn-s:focus-visible{border-color:var(--ink-2);background:rgba(255,255,255,.04)}
+
+/* ── dividers ─────────────────────────────────────────── */
+.divider{width:100%;height:60px;display:block;border-block:1px solid var(--rule)}
+
+/* ── generic section ──────────────────────────────────── */
+section{padding-block:clamp(52px,8vw,92px)}
+.sec-lab{font-family:var(--m);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 18px}
+h2{font-size:clamp(28px,4.6vw,50px);font-weight:700;line-height:1.02;letter-spacing:-.035em;
+  margin:0 0 20px;max-width:19ch;text-wrap:balance}
+h2 em{font-style:italic;font-weight:400;color:var(--trans)}
+h3{font-size:clamp(20px,2.4vw,26px);font-weight:600;letter-spacing:-.022em;line-height:1.15;margin:0 0 10px}
+p{margin:0 0 18px;max-width:66ch;color:var(--ink-2)}
+p:last-child{margin-bottom:0}
+strong{color:var(--ink);font-weight:600}
+a{color:var(--laminar)}
+
+/* thesis */
+.thesis{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(28px,5vw,64px);align-items:start}
+.thesis .side{border-left:1px solid var(--rule-2);padding-left:22px;font-family:var(--m);
+  font-size:12.5px;line-height:1.95;color:var(--muted);letter-spacing:.02em}
+.thesis .side b{display:block;color:var(--ink);font-weight:500;text-transform:uppercase;
+  letter-spacing:.15em;font-size:12px;margin:0 0 6px}
+.thesis .side b:not(:first-child){margin-top:20px}
+
+/* ── practice tiles ───────────────────────────────────── */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule-2);
+  border:1px solid var(--rule-2)}
+.tile{background:var(--bg-2);display:flex;flex-direction:column;text-decoration:none;color:inherit;
+  transition:background .25s}
+.tile:hover,.tile:focus-visible{background:#121A1D}
+.tile .win{position:relative;height:132px;overflow:hidden;border-bottom:1px solid var(--rule)}
+.tile .win canvas{position:absolute;inset:0;width:100%;height:100%}
+.tile .rg{position:absolute;right:11px;top:10px;z-index:2;font-family:var(--m);font-size:12px;
+  letter-spacing:.16em;text-transform:uppercase}
+.tile .body{padding:24px 22px 26px;display:flex;flex-direction:column;flex:1}
+.tile h3{min-height:2.3em}
+.tile .kind{font-family:var(--m);font-size:12px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 13px}
+.tile p{font-size:15.5px;margin:0 0 16px}
+.tile ul{list-style:none;margin:0 0 20px;padding:0;font-size:14px;color:var(--ink-2)}
+.tile li{padding:7px 0;border-top:1px solid var(--rule)}
+.tile .go{margin-top:auto;font-family:var(--m);font-size:12.5px;letter-spacing:.09em;color:var(--ink)}
+.tile:hover .go,.tile:focus-visible .go{color:var(--laminar)}
+
+/* ── products ─────────────────────────────────────────── */
+.prod{border:1px solid var(--rule-2);background:var(--bg-2);margin-bottom:26px}
+.prod-top{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:baseline;justify-content:space-between;
+  padding:22px 24px;border-bottom:1px solid var(--rule)}
+.prod-top .n{font-family:var(--m);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--turb-text)}
+.prod h3{margin:0}
+.prod .sub{font-family:var(--m);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-top:7px}
+.circuit{position:relative;border-bottom:1px solid var(--rule)}
+.circuit canvas{width:100%;height:200px}
+.circ-ui{position:absolute;left:20px;top:16px;display:flex;align-items:center;gap:14px;z-index:2}
+.modebtn{background:transparent;border:1px solid var(--rule-2);color:var(--ink);font-family:var(--m);
+  font-size:12.5px;letter-spacing:.08em;min-height:44px;padding:0 16px;cursor:pointer;transition:border-color .2s,color .2s}
+.modebtn:hover,.modebtn:focus-visible{border-color:var(--laminar);color:var(--laminar)}
+.modebtn[aria-pressed="true"]{border-color:var(--laminar);color:var(--laminar);background:rgba(95,191,168,.09)}
+.circ-state{font-family:var(--m);font-size:12.5px;letter-spacing:.05em;color:var(--muted)}
+.prod-body{padding:26px 24px}
+.prod-body>p{margin-bottom:24px}
+.feats{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.feat h4{font-size:12px;font-family:var(--m);font-weight:500;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink);margin:0 0 9px;padding-bottom:9px;border-bottom:1px solid var(--rule-2)}
+.feat p{font-size:14.5px;line-height:1.68;margin:0;color:var(--ink-2)}
+.steps{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px;padding-top:22px;border-top:1px solid var(--rule)}
+.step{font-family:var(--m);font-size:12px;color:var(--muted);border:1px solid var(--rule-2);
+  padding:7px 12px;letter-spacing:.04em}
+.step b{color:var(--laminar);font-weight:400}
+
+/* ── contact ──────────────────────────────────────────── */
+.contact{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(30px,5vw,62px);align-items:start}
+.form{display:grid;gap:22px;max-width:520px}
+.fld{position:relative}
+.fld label{display:block;font-family:var(--m);font-size:12px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.fld .req{color:var(--turb-text)}
+.fld input,.fld textarea{width:100%;background:transparent;border:0;color:var(--ink);
+  font-family:var(--f);font-size:16px;line-height:1.55;padding:8px 2px 10px;outline:none;resize:vertical}
+.fld input::placeholder,.fld textarea::placeholder{color:#5A656B}
+.fld input:focus-visible,.fld textarea:focus-visible{outline:none}
+.fld .mn{width:100%;height:16px;margin-top:-6px}
+.consent{display:flex;gap:12px;align-items:flex-start;font-size:14.5px;color:var(--ink-2);
+  max-width:52ch;cursor:pointer;padding:6px 0}
+.consent input{width:20px;height:20px;flex-shrink:0;margin-top:2px;accent-color:var(--laminar);cursor:pointer}
+.hp{position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden}
+.sendbtn{position:relative;overflow:hidden;border:1px solid var(--turb);background:transparent;
+  color:var(--ink);font-family:var(--f);font-size:15px;font-weight:600;letter-spacing:.02em;
+  min-height:52px;width:220px;cursor:pointer;padding:0}
+.sendbtn span{position:relative;z-index:2}
+.sendbtn canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;opacity:.9}
+.sendbtn[disabled]{opacity:.55;cursor:default}
+.formmsg{font-size:15px;line-height:1.7;padding:14px 16px;border:1px solid var(--rule-2);
+  background:var(--bg-2);color:var(--ink-2)}
+.formmsg.ok{border-color:var(--laminar)}
+.formmsg.err{border-color:var(--turb)}
+.formmsg strong{color:var(--ink)}
+.cnote{font-family:var(--m);font-size:12.5px;line-height:2;color:var(--muted);
+  border-left:1px solid var(--rule-2);padding-left:22px}
+.cnote b{color:var(--ink);font-weight:500}
+
+/* ── gauge rail ───────────────────────────────────────── */
+#rail{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:55;
+  width:60px;text-align:center;pointer-events:none}
+#rail .rd{font-family:var(--m);font-size:9.5px;letter-spacing:.11em;color:var(--muted);margin-top:3px}
+@media (max-width:1330px){#rail{display:none}}
+
+/* ── footer ───────────────────────────────────────────── */
+footer{border-top:1px solid var(--rule);padding-block:44px 52px}
+.foot{display:flex;flex-wrap:wrap;gap:26px 44px;justify-content:space-between;align-items:flex-start}
+.foot nav{display:flex;flex-wrap:wrap;gap:4px 6px}
+.foot nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;
+  font-size:14px;color:var(--ink-2);text-decoration:none}
+.foot nav a:hover,.foot nav a:focus-visible{color:var(--ink)}
+.foot .mono{font-family:var(--m);font-size:12px;letter-spacing:.1em;color:var(--muted);line-height:2}
+
+/* ── responsive ───────────────────────────────────────── */
+@media (max-width:940px){
+  .thesis,.contact{grid-template-columns:1fr}
+  .tiles{grid-template-columns:1fr}
+  .feats{grid-template-columns:1fr;gap:20px}
+}
+@media (max-width:780px){
+  body{font-size:16px}
+  .nav,.navcta{display:none}
+  .burger{display:flex}
+  .navwrap.open .nav{display:flex;position:absolute;left:0;right:0;top:100%;flex-direction:column;
+    background:var(--bg);border-bottom:1px solid var(--rule);padding:8px var(--gut) 16px}
+  .navwrap.open .navcta{display:inline-flex;position:absolute;left:var(--gut);top:calc(100% + 254px);margin:0}
+  .navwrap.open .nav a{min-height:52px;font-size:17px;padding-left:0}
+  .navwrap.open .nav a svg{display:none}
+  h1{max-width:none}
+  .sendbtn{width:100%}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+
+/* ── language switcher ────────────────────────────────── */
+.langsw{display:flex;align-items:center;gap:2px;margin-left:10px;
+  border:1px solid var(--rule-2);padding:2px}
+.lang{display:inline-flex;align-items:center;justify-content:center;
+  min-width:40px;min-height:44px;padding:0 8px;
+  font-family:var(--m);font-size:12px;letter-spacing:.08em;
+  color:var(--muted);text-decoration:none;transition:color .2s,background .2s}
+.lang abbr{text-decoration:none;border:0}
+.lang:hover,.lang:focus-visible{color:var(--ink);background:rgba(255,255,255,.05)}
+.lang.on{color:var(--laminar);background:rgba(95,191,168,.11);cursor:default}
+@media (max-width:780px){
+  .langsw{margin-left:auto;margin-right:8px}
+  .lang{min-width:42px;min-height:44px}
+}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Zum Inhalt springen</a>
+
+<div id="rail" aria-hidden="true">
+  <svg viewBox="0 0 64 64" width="60" height="60">
+    <circle cx="32" cy="32" r="26" fill="#0E1416" stroke="#2E3940" stroke-width="1"/>
+    <path d="M 13 45 A 26 26 0 1 1 51 45" fill="none" stroke="#1F282D" stroke-width="3"/>
+    <path id="g-arc" d="M 13 45 A 26 26 0 1 1 51 45" fill="none" stroke="#5FBFA8" stroke-width="3"
+          stroke-linecap="round" stroke-dasharray="123" stroke-dashoffset="123"/>
+    <line id="g-needle" x1="32" y1="32" x2="32" y2="13" stroke="#E4572E" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="32" cy="32" r="2.6" fill="#E4572E"/>
+  </svg>
+  <div class="rd" id="g-read">0.00 bar</div>
+</div>
+
+<header class="hdr" id="hdr">
+  <div class="hdr-in">
+    <a class="brand" href="index.html">
+      <canvas id="f-mark" width="30" height="30" aria-hidden="true"></canvas>
+      <span class="wm">pump<em>o</em>lino</span>
+    </a>
+    <div class="navwrap" id="navwrap">
+      <nav class="nav" id="nav" aria-label="Hauptnavigation">
+        <a href="#thesis" data-amp="0.55">These</a>
+        <a href="#practice" class="calm" data-amp="0.3">Tätigkeit</a>
+        <a href="#products" data-amp="0.75">Produkte</a>
+        <a href="#pumps" class="rough" data-amp="1.6">Pumpen &amp; Kunst</a>
+      </nav>
+      <div class="langsw" role="group" aria-label="Sprache">
+        <a class="lang" href="../index.html" data-lang-link="../index.html" hreflang="en" lang="en"><abbr title="English">EN</abbr></a>
+        <span class="lang on" aria-current="true" lang="de">DE</span>
+        <a class="lang" href="../fr/index.html" data-lang-link="../fr/index.html" hreflang="fr-CH" lang="fr"><abbr title="Français">FR</abbr></a>
+      </div>
+      <a class="navcta" href="#contact">Kontakt</a>
+      <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menü">
+        <svg viewBox="0 0 18 14" aria-hidden="true"><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M0 1h18"/><path d="M0 7h12"/><path d="M0 13h16"/></g></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<div class="hero">
+  <canvas id="f-hero" aria-hidden="true"></canvas>
+  <div class="hero-veil" aria-hidden="true"></div>
+  <div class="shell hero-in">
+    <p class="eyebrow">Für eine Welt im Fluss</p>
+    <h1>Systeme, die bewegen.<br><em>Wasser, Information, Entscheidungen.</em></h1>
+    <p>Pumpolino baut die Betriebsebene für alles, was nicht aus dem Blick geraten darf: Service an Industriepumpen, Provenienz von Kunstwerken und die Aufzeichnungen, die beide überdauern.</p>
+    <div class="btns">
+      <a class="btn-p" href="#products">ServiceFlow entdecken →</a>
+      <a class="btn-s" href="#thesis">Zur These</a>
+    </div>
+  </div>
+</div>
+
+<section id="thesis" class="shell">
+  <p class="sec-lab">01 — Die These</p>
+  <div class="thesis">
+    <div>
+      <h2>Eine Pumpe und ein Gemälde verlangen <em>dieselbe Disziplin.</em></h2>
+      <p>Auf den ersten Blick haben industrielle Systeme und Kulturgüter nichts miteinander zu tun. Das eine folgt der Technik, das andere der Bedeutung und dem Kontext. Und doch beruhen beide auf demselben: auf <strong>Präzision im Umgang mit Information, Verantwortung und Zeit.</strong></p>
+      <p>Langfristiger Wert entsteht nie zufällig. Er entsteht durch strukturierte Dokumentation, lückenlose Historien und verlässliche Standards im Umgang. Ob es sich um eine Kreiselpumpe handelt, die elf Monate im Jahr läuft, oder um eine Leinwand, die seit 1931 viermal den Besitzer gewechselt hat — die zugrunde liegende Logik bleibt dieselbe.</p>
+      <p>Diese beiden Felder bilden unser Fundament nicht, weil sie sich an der Oberfläche ähneln, sondern weil darunter dieselbe operative Wahrheit zum Vorschein kommt: Systeme, die Wert bewahren, Fachwissen koordinieren und Kontinuität über die Zeit schaffen.</p>
+    </div>
+    <div class="side">
+      <b>Tätigkeit</b>
+      Prozessintelligenz<br>Kunstprovenienz<br>Industrielle Anlagenbetreuung
+      <b>Methode</b>
+      Zentrale Datenhaltung<br>Vorausschauende Planung<br>Ressourcenkoordination
+      <b>Standort</b>
+      Schweiz
+      <b>Antwortzeit</b>
+      Persönlich, innert zwei Tagen<br>Keine Vorlagen, keine Automatisierung
+    </div>
+  </div>
+</section>
+
+<canvas class="divider" id="f-div1" aria-hidden="true"></canvas>
+
+<section id="practice" class="shell">
+  <p class="sec-lab">02 — Tätigkeitsfelder</p>
+  <h2>Drei Bereiche, eine Methode.</h2>
+  <p style="margin-bottom:34px">Jeder hat sein eigenes Tempo. Die Arbeit nicht.</p>
+  <div class="tiles">
+      <a class="tile" href="#products">
+        <div class="win">
+          <canvas id="f-lam" aria-hidden="true"></canvas>
+          <span class="rg" style="color:var(--laminar)">Laminar</span>
+        </div>
+        <div class="body">
+          <h3>Prozess &amp; Intelligenz</h3>
+          <p class="kind">Beratung · Daten · KI</p>
+          <p>Wir arbeiten dort, wo <strong>Komplexität Ruhe verlangt.</strong> Tiefe technische Erfahrung in industriellen Prozessen, verbunden mit moderner Datenarchitektur und angewandter Intelligenz.</p>
+          <ul>
+            <li>ServiceFlow — Serviceabwicklung</li>
+            <li>FlowSales — Vertriebsintelligenz</li>
+          </ul>
+          <span class="go">Eintreten →</span>
+        </div>
+      </a>
+
+      <a class="tile" href="#pumps">
+        <div class="win">
+          <canvas id="f-tur" aria-hidden="true"></canvas>
+          <span class="rg" style="color:var(--turb-text)">Turbulent</span>
+        </div>
+        <div class="body">
+          <h3>Industriepumpen &amp; Kunst</h3>
+          <p class="kind">Form findet Funktion</p>
+          <p>Wo Technik auf Obhut trifft. Dieselbe Disziplin aus Dokumentation, Präzision und langfristiger Werterhaltung — angewandt auf Maschinen wie auf Objekte.</p>
+          <ul>
+            <li>Dokumentation über den Lebenszyklus</li>
+            <li>Einsatz von Fachkräften &amp; Logistik</li>
+          </ul>
+          <span class="go">Weiterlesen →</span>
+        </div>
+      </a>
+
+      <a class="tile" href="#contact">
+        <div class="win">
+          <canvas id="f-sed" aria-hidden="true"></canvas>
+          <span class="rg" style="color:var(--trans)">Sedimentierend</span>
+        </div>
+        <div class="body">
+          <h3>Kunst &amp; Provenienz</h3>
+          <p class="kind">Museen · Sammlungen · Ausstellung</p>
+          <p>Wir arbeiten dort, wo <strong>Bedeutung Diskretion verlangt.</strong> Objekte von Bedeutung, begleitet durch Erwerb, Platzierung und Ausstellung — mit Geduld behandelt.</p>
+          <ul>
+            <li>Provenienzforschung</li>
+            <li>Sammlungsdokumentation</li>
+          </ul>
+          <span class="go">Anfragen →</span>
+        </div>
+      </a>
+  </div>
+</section>
+
+<canvas class="divider" id="f-div2" aria-hidden="true"></canvas>
+
+<section id="products" class="shell">
+  <p class="sec-lab">03 — Produkte</p>
+  <h2>Software, die Erfahrung in Struktur überführt.</h2>
+  <p style="margin-bottom:34px">Zwei Systeme, beide auf derselben Idee gebaut: Wissen, das über Teams und Dokumente verstreut war, wird zu einer einzigen, verlässlichen Quelle.</p>
+
+  <article class="prod">
+    <div class="prod-top">
+      <div>
+        <p class="n">Produkt 01</p>
+        <h3>Pumpolino ServiceFlow</h3>
+        <p class="sub">Software · Service · Automatisierung</p>
+      </div>
+    </div>
+    <div class="circuit">
+      <canvas id="f-pipe" aria-hidden="true"></canvas>
+      <div class="circ-ui">
+        <button class="modebtn" id="mode-btn" type="button" aria-pressed="false">Proaktiven Modus aktivieren</button>
+        <span class="circ-state" id="mode-state" role="status">Reaktiv — Aufträge stauen sich an jeder Station</span>
+      </div>
+    </div>
+    <div class="prod-body">
+      <p>Vom reaktiven Service zum kontrollierten Betrieb. ServiceFlow überführt Effizienz in Struktur und bringt Servicehistorie, Terminplanung und Ressourcenzuteilung in ein einziges, transparentes System.</p>
+      <div class="feats">
+        <div class="feat">
+          <h4>Zentrale Datenhaltung</h4>
+          <p>Sämtliche Servicehistorie und Produktanpassungen liegen an einem Ort. Wissen, das über Teams und Dokumente verstreut war, wird zu einer einzigen, verlässlichen Quelle — zugänglich und über die Jahre konsistent.</p>
+        </div>
+        <div class="feat">
+          <h4>Automatisierung</h4>
+          <p>Gut gebaute Systeme reagieren nicht, sie antizipieren. Serviceintervalle werden automatisch überwacht und Technikerinnen und Techniker informiert, bevor ein Problem entsteht. Der Betriebsmodus wechselt von reaktiv zu proaktiv.</p>
+        </div>
+        <div class="feat">
+          <h4>Einsatzplanung</h4>
+          <p>Fachkräfte, Ersatzteile und Logistik werden präzise koordiniert. Das richtige Know-how steht genau dann bereit, wenn es gebraucht wird — weniger Reibung im Betrieb, gleichbleibende Servicequalität.</p>
+        </div>
+      </div>
+      <div class="steps">
+        <span class="step"><b>01</b> &nbsp;Analyse — Prozesse definiert, Funktionen bestimmt</span>
+        <span class="step"><b>02</b> &nbsp;Konfiguration &amp; Migration in bestehende Abläufe</span>
+        <span class="step"><b>03</b> &nbsp;Schrittweiser Rollout mit Schulung</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="prod">
+    <div class="prod-top">
+      <div>
+        <p class="n">Produkt 02</p>
+        <h3>Pumpolino FlowSales</h3>
+        <p class="sub">Software · Vertrieb · Intelligenz</p>
+      </div>
+    </div>
+    <div class="prod-body">
+      <p>Entscheidungen strukturieren, bevor sie fallen. FlowSales macht Erfahrung reproduzierbar und überführt Projektwissen in strukturierte Vertriebsintelligenz, die jede Phase des Verkaufsprozesses stützt.</p>
+      <div class="feats">
+        <div class="feat">
+          <h4>Digitaler Zwilling</h4>
+          <p>Jedes Projekt wird vollständig erfasst: Unterlagen, Zertifikate, Konfigurationen und Sensordaten fliessen in einen strukturierten Datensatz. Firmenwissen wird durchsuchbar, vergleichbar und genau dann verfügbar, wenn es gebraucht wird.</p>
+        </div>
+        <div class="feat">
+          <h4>Vertriebsunterstützung</h4>
+          <p>Passende Referenzen und vergleichbare Projekte erscheinen im richtigen Moment. Die Abschlussquote steigt, weil Offerten auf belegter Erfahrung beruhen und nicht auf allgemeiner Leistungsfähigkeit.</p>
+        </div>
+        <div class="feat">
+          <h4>Offertenerstellung</h4>
+          <p>Teilautomatisierte Offerten entstehen aus bestehenden Konfigurationen und Projektdaten. Teams bauen Angebote nicht immer wieder neu auf, sondern widmen sich den Entscheidungen, die echtes Fachwissen verlangen.</p>
+        </div>
+      </div>
+      <div class="steps">
+        <span class="step"><b>01</b> &nbsp;Datenstrukturierung — Projekt- und Referenzdaten geordnet</span>
+        <span class="step"><b>02</b> &nbsp;Systemkonfiguration — Vertriebsprozesse abgebildet</span>
+        <span class="step"><b>03</b> &nbsp;Schrittweiser Rollout mit Optimierung</span>
+      </div>
+    </div>
+  </article>
+</section>
+
+<canvas class="divider" id="f-div3" aria-hidden="true"></canvas>
+
+<section id="pumps" class="shell">
+  <p class="sec-lab">04 — Industriepumpen &amp; Kunst</p>
+  <div class="thesis">
+    <div>
+      <h2>Eine gemeinsame Sprache der <em>Präzision.</em></h2>
+      <p>Komplexe Umgebungen verlangen die präzise Zuteilung von Zeit, Fachwissen und Verantwortung. Planung folgt klaren Strukturen, die Kontinuität sichern und Reibung im Betrieb verringern — beim Revisionsfenster ebenso wie beim Aufbau einer Ausstellung.</p>
+      <p>Jedes Objekt wird nach seiner Bedeutung und seinem Zustand behandelt. Definierte Abläufe sichern sorgfältige Handhabung, durchgehendes Wissen und einen gleichbleibenden Standard der Betreuung über den gesamten Lebenszyklus.</p>
+      <p>Daten werden wertvoll, wenn sie Entscheidungen aktiv stützen. Information und Abläufe sind verbunden: besseres Timing, klarere Prioritäten, fundierteres Handeln. Eine einzige Plattform schafft Transparenz über alle Ebenen der Organisation.</p>
+    </div>
+    <div class="side">
+      <b>Gilt für</b>
+      Kreisel- und Verdrängerpumpen<br>Dichtungen, Lager, Antriebsstränge<br>Werke auf Papier, Leinwand, Skulptur<br>Leihgaben &amp; Dauerdepots
+      <b>Ergibt</b>
+      Einheitliche Servicehistorie<br>Zustands- und Herkunftsnachweise<br>Geplante Eingriffsfenster<br>Prüfbare Eigentumskette
+    </div>
+  </div>
+</section>
+
+<canvas class="divider" id="f-div4" aria-hidden="true"></canvas>
+
+<section id="contact" class="shell">
+  <p class="sec-lab">05 — Kontakt</p>
+  <div class="contact">
+    <div>
+      <h2>Schreiben Sie uns.</h2>
+      <form class="form" id="cform" novalidate>
+        <div class="fld">
+          <label for="c-name">Name</label>
+          <input id="c-name" name="name" type="text" autocomplete="name" placeholder="Ihr Name">
+          <canvas class="mn" aria-hidden="true"></canvas>
+        </div>
+        <div class="fld">
+          <label for="c-email">E-Mail <span class="req" aria-hidden="true">*</span></label>
+          <input id="c-email" name="email" type="email" required autocomplete="email" placeholder="sie@beispiel.ch">
+          <canvas class="mn" aria-hidden="true"></canvas>
+        </div>
+        <div class="fld">
+          <label for="c-subject">Betreff <span class="req" aria-hidden="true">*</span></label>
+          <input id="c-subject" name="subject" type="text" required placeholder="Worum geht es?">
+          <canvas class="mn" aria-hidden="true"></canvas>
+        </div>
+        <div class="fld">
+          <label for="c-message">Nachricht <span class="req" aria-hidden="true">*</span></label>
+          <textarea id="c-message" name="message" rows="4" required placeholder="Sagen Sie uns, was Sie brauchen."></textarea>
+          <canvas class="mn" aria-hidden="true"></canvas>
+        </div>
+
+        <div class="hp" aria-hidden="true">
+          <label for="c-website">Dieses Feld bitte leer lassen</label>
+          <input id="c-website" name="botcheck" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <label class="consent" for="c-consent">
+          <input id="c-consent" name="consent" type="checkbox" required>
+          <span>Ich bin einverstanden, dass die obigen Angaben gespeichert und zur Beantwortung meiner Anfrage verwendet werden. Sie werden für nichts anderes genutzt.</span>
+        </label>
+
+        <button class="sendbtn" id="c-send" type="submit">
+          <span id="c-send-label">Nachricht senden →</span>
+          <canvas id="f-btn" aria-hidden="true"></canvas>
+        </button>
+
+        <div class="formmsg" id="c-msg" role="status" aria-live="polite" hidden></div>
+      </form>
+    </div>
+    <div class="cnote"><b>Wir antworten persönlich.</b><br>Keine Vorlagen, keine Automatisierung.<br><br>Ob die Frage eine Pumpenflotte über drei Standorte betrifft oder ein einzelnes Werk mit lückenhafter Geschichte — die Antwort kommt von einem Menschen, der sie gelesen hat.<br><br><b>pumpolino.com</b></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="shell foot">
+    <nav aria-label="Footer">
+      <a href="#thesis">These</a>
+      <a href="#practice">Tätigkeit</a>
+      <a href="#products">Produkte</a>
+      <a href="#pumps">Pumpen &amp; Kunst</a>
+      <a href="#contact">Kontakt</a>
+      <a href="legal/">Impressum</a>
+    </nav>
+    <p class="mono" style="margin:0">
+      pumpolino.com<br>
+      für eine Welt im Fluss
+    </p>
+  </div>
+</footer>
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"ProfessionalService",
+  "name":"Pumpolino",
+  "url":"https://pumpolino.com/de/",
+  "slogan":"für eine Welt im Fluss",
+  "description":"Pumpolino baut die Betriebsebene für industrielle Prozessintelligenz, Kunstprovenienz und langfristige Anlagenbetreuung.",
+  "areaServed":"CH",
+  "availableLanguage":["en","de","fr"]
+}
+</script>
+
+<script>window.I18N = {"stages":["Eingang","Planung","Einsatz"],"modeOn":"Proaktiven Modus aktivieren","modeOff":"Zurück zu reaktiv","stateReactive":"Reaktiv — Aufträge stauen sich an jeder Station","stateProactive":"Proaktiv — Intervalle überwacht, Rückstau abgebaut","send":"Nachricht senden →","sending":"Wird gesendet …","errEmail":"Bitte geben Sie eine E-Mail-Adresse an, an die wir antworten können.","errSubject":"Bitte ergänzen Sie einen Betreff, damit wir wissen, worum es geht.","errMessage":"Bitte ergänzen Sie eine Nachricht.","errConsent":"Bitte kreuzen Sie das Feld an, damit wir Ihre Angaben zur Beantwortung speichern dürfen.","localPreview":"<strong>Lokale Vorschau.</strong><br>Das Formular wurde korrekt geprüft. Der Versand ist deaktiviert, solange die Seite von der Festplatte geöffnet wird — auf dem Server geht sie an Web3Forms.","sendOk":"<strong>Danke.</strong><br>Ihre Nachricht ist eingegangen. Wir melden uns in Kürze.","sendErr":"Beim Senden ist etwas schiefgelaufen. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt."};</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   flow.js — one engine, one rAF loop, every instance below.
+   Regimes are parameter sets, not separate code paths.
+   ══════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+var WEB3FORMS_KEY = 'efb3d627-a22e-4735-a9a7-ff6069559d69';
+var I18N = window.I18N || {};
+
+var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var SMALL  = window.matchMedia && window.matchMedia('(max-width: 780px)').matches;
+var TEAL='95,191,168', SLATE='156,186,206', VERM='228,87,46';
+var insts=[], T=0;
+
+function setup(cv,h){
+  var dpr=Math.min(2, window.devicePixelRatio||1);
+  var w=cv.clientWidth||cv.width||600;
+  h=h||cv.clientHeight||cv.height||200;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  var x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0);
+  return {x:x,w:w,h:h};
+}
+
+/* still = render N frames then stop. Never a blank canvas. */
+function mount(cv, h, make, opt){
+  if(!cv) return null;
+  opt=opt||{};
+  var s=setup(cv,h);
+  var inst=make(s.x,s.w,s.h);
+  inst.cv=cv; inst.ctx=s.x; inst.lw=s.w; inst.lh=s.h; inst.mk=make; inst.on=false;
+  var still = REDUCE || (SMALL && !opt.keepOnMobile);
+  inst.still = still;
+  insts.push(inst);
+  if(still){ for(var i=0;i<(opt.frames||240);i++) inst.step(); }
+  else if('IntersectionObserver' in window){
+    new IntersectionObserver(function(es){
+      for(var j=0;j<es.length;j++) inst.on=es[j].isIntersecting;
+    },{threshold:0.01, rootMargin:'80px'}).observe(cv);
+  } else { inst.on=true; }
+  return inst;
+}
+
+function loop(){
+  T+=1/60;
+  for(var i=0;i<insts.length;i++){ var n=insts[i]; if(n.on && !n.still) n.step(); }
+  requestAnimationFrame(loop);
+}
+
+/* ── the field: every regime is this function with different numbers ── */
+function field(x,w,h,o){
+  o=o||{};
+  var N=o.count||300, P=[], i;
+  var curl=o.curl!==undefined?o.curl:0.6, sp=o.speed||1.8, jit=o.jitter||0;
+  var grav=o.gravity||0, bias=o.bias!==undefined?o.bias:1.0;
+  var fade=o.fade||0.03, ramp=!!o.ramp, hue=o.hue||SLATE, hue2=o.hue2, lw=o.lw||0.8;
+  function spawn(p,anywhere){
+    p.x = anywhere ? Math.random()*w : (o.inflow ? -4 - Math.random()*30 : Math.random()*w);
+    p.y = Math.random()*h;
+    p.l = 40+Math.random()*(o.life||150);
+  }
+  for(i=0;i<N;i++){ var p={}; spawn(p,true); P.push(p); }
+  x.fillStyle='#0E1416'; x.fillRect(0,0,w,h);
+  return { step:function(){
+    x.fillStyle='rgba(14,20,22,'+fade+')'; x.fillRect(0,0,w,h);
+    for(var i=0;i<N;i++){
+      var p=P[i];
+      var k = ramp ? (0.06 + 2.4*Math.pow(p.x/w,1.7)) : 1;
+      var a = (Math.sin(p.y*0.021)*1.4 + Math.cos(p.x*0.016)*1.1
+             + Math.sin((p.x+p.y)*0.008 + T*0.3)*0.9) * curl * k;
+      var vx = Math.cos(a)*sp + bias*sp*0.55;
+      var vy = Math.sin(a)*sp + grav*h*0.02;
+      if(jit){ vx += (Math.random()-0.5)*jit*sp*k*2.2; vy += (Math.random()-0.5)*jit*sp*k*2.2; }
+      if(o.obstacle && o.obstacle.on){
+        var dx=p.x-o.obstacle.x, dy=p.y-o.obstacle.y, d2=dx*dx+dy*dy, R=o.obstacle.r;
+        if(d2 < R*R && d2>0.5){ var d=Math.sqrt(d2), f=(1-d/R); f=f*f*7.5; vx+=dx/d*f; vy+=dy/d*f; }
+      }
+      var nx=p.x+vx, ny=p.y+vy;
+      var c = hue2 ? (p.y/h<0.5?hue:hue2) : hue;
+      x.strokeStyle='rgba('+c+','+(0.26+0.28*Math.random())+')';
+      x.lineWidth=lw;
+      x.beginPath(); x.moveTo(p.x,p.y); x.lineTo(nx,ny); x.stroke();
+      p.x=nx; p.y=ny; p.l--;
+      if(p.l<0||p.x>w+6||p.x<-40||p.y>h+6||p.y<-6) spawn(p, !o.inflow);
+    }
+  }};
+}
+
+/* ══ 01 · hero field, cursor as a body in the flow ══ */
+(function(){
+  var cv=document.getElementById('f-hero'); if(!cv) return;
+  var hero=cv.parentNode;
+  function size(){ cv.style.width=hero.offsetWidth+'px'; cv.style.height=hero.offsetHeight+'px'; }
+  size();
+  var ob={on:false,x:0,y:0,r:76};
+  mount(cv, hero.offsetHeight, function(x,w,h){
+    return field(x,w,h,{count:SMALL?300:760,curl:1.0,speed:1.9,fade:0.024,
+      hue:TEAL,hue2:VERM,obstacle:ob,lw:0.85});
+  }, {keepOnMobile:true, frames:300});
+  if(!REDUCE){
+    hero.addEventListener('pointermove',function(e){
+      if(e.pointerType==='touch') return;
+      var r=cv.getBoundingClientRect(); ob.on=true; ob.x=e.clientX-r.left; ob.y=e.clientY-r.top;
+    });
+    hero.addEventListener('pointerleave',function(){ ob.on=false; });
+  }
+})();
+
+/* ══ 02 · impeller mark ══ */
+(function(){
+  var cv=document.getElementById('f-mark'); if(!cv) return;
+  var spool={v:0.9,target:0.9};
+  mount(cv,30,function(x,w,h){
+    var cx=w/2, cy=h/2, R=Math.min(w,h)*0.42, r1=R*0.30, th=0, V=7, i;
+    var P=[]; for(i=0;i<34;i++) P.push({r:r1*(0.4+Math.random()*0.9), a:Math.random()*6.283, s:0.5+Math.random()*0.8});
+    return { step:function(){
+      spool.v += (spool.target-spool.v)*0.07; th += spool.v*0.016;
+      x.clearRect(0,0,w,h);
+      for(i=0;i<P.length;i++){
+        var p=P[i];
+        var px=cx+Math.cos(p.a)*p.r, py=cy+Math.sin(p.a)*p.r;
+        p.a += spool.v*0.085*(1+(R-p.r)/R)*p.s;
+        p.r += spool.v*0.30*p.s;
+        var nx=cx+Math.cos(p.a)*p.r, ny=cy+Math.sin(p.a)*p.r;
+        var fr=Math.min(1,p.r/R);
+        x.strokeStyle='rgba('+(fr>0.78?VERM:TEAL)+','+(0.16+0.5*fr)+')'; x.lineWidth=0.8;
+        x.beginPath(); x.moveTo(px,py); x.lineTo(nx,ny); x.stroke();
+        if(p.r>R*1.15){ p.r=r1*(0.35+Math.random()*0.5); p.a=Math.random()*6.283; }
+      }
+      x.save(); x.translate(cx,cy); x.rotate(th);
+      for(i=0;i<V;i++){
+        var a0=i*6.283/V;
+        x.strokeStyle='rgba(232,236,238,0.86)'; x.lineWidth=1.5; x.lineCap='round';
+        x.beginPath();
+        x.moveTo(Math.cos(a0)*r1, Math.sin(a0)*r1);
+        x.quadraticCurveTo(Math.cos(a0+0.40)*R*0.68, Math.sin(a0+0.40)*R*0.68,
+                           Math.cos(a0+0.86)*R, Math.sin(a0+0.86)*R);
+        x.stroke();
+      }
+      x.fillStyle='#E4572E'; x.beginPath(); x.arc(0,0,r1*0.44,0,6.283); x.fill();
+      x.restore();
+    }};
+  },{keepOnMobile:true, frames:120});
+  var brand=document.querySelector('.brand');
+  if(brand && !REDUCE){
+    brand.addEventListener('pointerenter',function(){ spool.target=4.2; });
+    brand.addEventListener('pointerleave',function(){ spool.target=0.9; });
+    brand.addEventListener('focus',function(){ spool.target=4.2; });
+    brand.addEventListener('blur',function(){ spool.target=0.9; });
+  }
+})();
+
+/* ══ 03 · three regimes ══ */
+mount(document.getElementById('f-lam'),132,function(x,w,h){
+  return field(x,w,h,{count:180,curl:0.15,speed:1.4,jitter:0,fade:0.028,hue:TEAL,inflow:true,bias:1.3,lw:0.85,life:500});
+});
+mount(document.getElementById('f-tur'),132,function(x,w,h){
+  return field(x,w,h,{count:250,curl:1.7,speed:2.3,jitter:0.45,fade:0.036,hue:VERM,lw:0.75});
+});
+mount(document.getElementById('f-sed'),132,function(x,w,h){
+  var base=field(x,w,h,{count:150,curl:0.05,speed:0.30,jitter:0.015,gravity:0.09,
+                        fade:0.010,hue:SLATE,bias:0.05,lw:1.15,life:900});
+  var bed=[],i; for(i=0;i*3<w;i++) bed.push(0);
+  return { step:function(){
+    base.step();
+    for(i=0;i<bed.length;i++){
+      if(Math.random()<0.0022) bed[i]=Math.min(8,bed[i]+0.7);
+      if(bed[i]>0){ x.fillStyle='rgba('+SLATE+','+(0.10+bed[i]*0.030)+')'; x.fillRect(i*3,h-bed[i],3,bed[i]); }
+    }
+  }};
+});
+
+/* ══ 05 · dividers: laminar ▸ turbulent ══ */
+['f-div1','f-div2','f-div3','f-div4'].forEach(function(id){
+  mount(document.getElementById(id),60,function(x,w,h){
+    return field(x,w,h,{count:190,curl:0.9,speed:1.7,jitter:0.30,fade:0.030,
+      hue:TEAL,hue2:VERM,ramp:true,inflow:true,bias:1.4,lw:0.8,life:700});
+  });
+});
+
+/* ══ 04 · ServiceFlow circuit ══ */
+(function(){
+  var cv=document.getElementById('f-pipe'); if(!cv) return;
+  var mode={want:0};
+  mount(cv,200,function(x,w,h){
+    var y=h*0.58, stages=[0.24,0.5,0.76], names=I18N.stages, P=[], i;
+    for(i=0;i<140;i++) P.push({x:Math.random()*w, hold:0, off:(Math.random()-0.5)*20});
+    var on=0;
+    return { step:function(){
+      on += (mode.want-on)*0.07;
+      x.fillStyle='#0E1416'; x.fillRect(0,0,w,h);
+      x.strokeStyle='rgba(62,76,84,1)'; x.lineWidth=1.5;
+      x.beginPath(); x.moveTo(0,y-28); x.lineTo(w,y-28); x.moveTo(0,y+28); x.lineTo(w,y+28); x.stroke();
+      x.font='10px ui-monospace, monospace'; x.textAlign='center';
+      for(i=0;i<3;i++){
+        var sx=stages[i]*w;
+        x.strokeStyle='rgba('+(on>0.5?TEAL:VERM)+',0.6)'; x.lineWidth=1.4;
+        x.beginPath(); x.moveTo(sx,y-36); x.lineTo(sx,y+36); x.stroke();
+        x.fillStyle='rgba(147,157,163,1)'; x.fillText(names[i], sx, y+54);
+      }
+      var speed=0.55+on*1.85;
+      for(i=0;i<P.length;i++){
+        var p=P[i];
+        if(p.hold>0){ p.hold -= 1+on*6; }
+        else {
+          var prev=p.x;
+          p.x += speed*(0.7+Math.random()*0.6*(1-on*0.85));
+          for(var s=0;s<3;s++){ var sx2=stages[s]*w; if(prev<sx2 && p.x>=sx2){ p.hold=(1-on)*(20+Math.random()*70); } }
+        }
+        if(p.x>w+8){ p.x=-8; p.off=(Math.random()-0.5)*20; }
+        var jitter=(1-on)*Math.sin(p.x*0.1+i)*4;
+        var col = p.hold>0 ? VERM : (on>0.5?TEAL:SLATE);
+        x.fillStyle='rgba('+col+','+(p.hold>0?0.95:0.72)+')';
+        x.beginPath(); x.arc(p.x, y+p.off*(1-on*0.75)+jitter, p.hold>0?2.7:2.0, 0, 6.283); x.fill();
+      }
+      x.textAlign='left';
+    }};
+  },{keepOnMobile:true, frames:200});
+
+  var btn=document.getElementById('mode-btn'), st=document.getElementById('mode-state');
+  function set(v){
+    mode.want=v?1:0;
+    btn.setAttribute('aria-pressed', v?'true':'false');
+    btn.textContent = v ? I18N.modeOff : I18N.modeOn;
+    st.textContent = v ? I18N.stateProactive : I18N.stateReactive;
+  }
+  if(btn){ btn.addEventListener('click',function(){ set(btn.getAttribute('aria-pressed')!=='true'); }); }
+  if(!REDUCE && cv){
+    cv.parentNode.addEventListener('pointerenter',function(){ if(btn.getAttribute('aria-pressed')!=='true') mode.want=1; });
+    cv.parentNode.addEventListener('pointerleave',function(){ if(btn.getAttribute('aria-pressed')!=='true') mode.want=0; });
+  }
+})();
+
+/* ══ 06 · streamline nav underlines ══ */
+(function(){
+  var links=document.querySelectorAll('.nav a'); var ns='http://www.w3.org/2000/svg';
+  Array.prototype.forEach.call(links,function(a,idx){
+    var amp=parseFloat(a.getAttribute('data-amp')||'0.5')*2.0;
+    var svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('viewBox','0 0 100 8');
+    svg.setAttribute('preserveAspectRatio','none');
+    svg.setAttribute('aria-hidden','true');
+    var d='M 0 4';
+    for(var i=1;i<=40;i++){ d+=' L '+(i*2.5)+' '+(4+Math.sin(i*0.85+idx)*amp).toFixed(2); }
+    var pa=document.createElementNS(ns,'path');
+    pa.setAttribute('d',d);
+    pa.setAttribute('vector-effect','non-scaling-stroke');
+    svg.appendChild(pa); a.appendChild(svg);
+  });
+})();
+
+/* ══ 07 · pressure gauge ══ */
+(function(){
+  var arc=document.getElementById('g-arc'), nd=document.getElementById('g-needle'), rd=document.getElementById('g-read');
+  if(!arc) return;
+  var cur=0;
+  nd.setAttribute('transform','rotate(-225 32 32)');
+  function upd(){
+    var max=document.documentElement.scrollHeight-window.innerHeight;
+    var p=max>0?Math.min(1,Math.max(0,window.scrollY/max)):0;
+    cur += (p-cur)*(REDUCE?1:0.16);
+    arc.setAttribute('stroke-dashoffset',(123*(1-cur)).toFixed(1));
+    nd.setAttribute('transform','rotate('+(-225+cur*270).toFixed(1)+' 32 32)');
+    rd.textContent=(cur*6.30).toFixed(2)+' bar';
+    requestAnimationFrame(upd);
+  }
+  upd();
+})();
+
+/* ══ 08 · meniscus fields + primed button ══ */
+(function(){
+  var flds=document.querySelectorAll('.fld');
+  Array.prototype.forEach.call(flds,function(f){
+    var cv=f.querySelector('canvas'), inp=f.querySelector('input,textarea');
+    if(!cv||!inp) return;
+    var st={lvl:0,vel:0,target:0,ripple:0};
+    mount(cv,16,function(x,w,h){
+      return { step:function(){
+        var a=(st.target-st.lvl)*0.12; st.vel=(st.vel+a)*0.78; st.lvl+=st.vel;
+        st.ripple*=0.985;
+        x.clearRect(0,0,w,h);
+        x.fillStyle='rgba(46,57,64,1)'; x.fillRect(0,h-2,w,1.3);
+        var top=h-2-st.lvl*(h-5), i;
+        if(st.lvl>0.004){
+          x.beginPath(); x.moveTo(0,h-1);
+          for(i=0;i<=w;i+=4) x.lineTo(i, top+Math.sin(i*0.06+T*3.2)*2.0*st.ripple+Math.sin(i*0.14-T*2.1)*1.0*st.ripple);
+          x.lineTo(w,h-1); x.closePath();
+          x.fillStyle='rgba(95,191,168,0.34)'; x.fill();
+          x.strokeStyle='rgba(95,191,168,0.95)'; x.lineWidth=1.4;
+          x.beginPath();
+          for(i=0;i<=w;i+=4){
+            var y2=top+Math.sin(i*0.06+T*3.2)*2.0*st.ripple+Math.sin(i*0.14-T*2.1)*1.0*st.ripple;
+            i?x.lineTo(i,y2):x.moveTo(i,y2);
+          }
+          x.stroke();
+        }
+      }};
+    },{keepOnMobile:true, frames:60});
+    inp.addEventListener('focus',function(){ st.target=1; st.ripple=1; });
+    inp.addEventListener('blur', function(){ if(!inp.value){ st.target=0; st.ripple=0.6; } });
+    inp.addEventListener('input',function(){ st.ripple=Math.max(st.ripple,0.4); st.target=1; });
+  });
+
+  var bc=document.getElementById('f-btn');
+  window.__prime={want:0,shot:0};
+  if(bc){
+    var bs=window.__prime;
+    mount(bc,52,function(x,w,h){
+      var P=[],i; for(i=0;i<52;i++) P.push({x:Math.random()*w,y:Math.random()*h,s:0.3+Math.random()});
+      var pr=0;
+      return { step:function(){
+        pr += (bs.want-pr)*0.08; if(bs.shot>0) bs.shot-=0.026;
+        x.clearRect(0,0,w,h);
+        if(pr<0.01 && bs.shot<=0) return;
+        for(i=0;i<P.length;i++){
+          var p=P[i];
+          p.x += (0.35+pr*1.7+bs.shot*6)*p.s;
+          p.y += Math.sin(p.x*0.07+i)*0.32;
+          if(p.x>w){ p.x=-3; p.y=Math.random()*h; }
+          x.fillStyle='rgba('+VERM+','+(0.10+pr*0.45+bs.shot*0.5)+')';
+          x.fillRect(p.x,p.y,1.8+bs.shot*3,1.6);
+        }
+      }};
+    },{keepOnMobile:true, frames:1});
+    var btn=document.getElementById('c-send');
+    ['pointerenter','focus'].forEach(function(e){ btn.addEventListener(e,function(){ bs.want=1; }); });
+    ['pointerleave','blur'].forEach(function(e){ btn.addEventListener(e,function(){ bs.want=0; }); });
+  }
+})();
+
+/* ══ header state + mobile menu ══ */
+(function(){
+  var hdr=document.getElementById('hdr');
+  function onScroll(){ hdr.classList.toggle('stuck', window.scrollY>12); }
+  onScroll(); window.addEventListener('scroll',onScroll,{passive:true});
+
+  var b=document.getElementById('burger'), wrap=document.getElementById('navwrap');
+  if(b){
+    b.addEventListener('click',function(){
+      var open=wrap.classList.toggle('open');
+      b.setAttribute('aria-expanded', open?'true':'false');
+    });
+    wrap.addEventListener('click',function(e){
+      if(e.target.tagName==='A'){ wrap.classList.remove('open'); b.setAttribute('aria-expanded','false'); }
+    });
+  }
+})();
+
+/* ══ contact form ══ */
+(function(){
+  var form=document.getElementById('cform'); if(!form) return;
+  var msg=document.getElementById('c-msg'),
+      btn=document.getElementById('c-send'),
+      lab=document.getElementById('c-send-label');
+
+  function show(kind, html){
+    msg.className='formmsg '+kind; msg.innerHTML=html; msg.hidden=false;
+  }
+
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    if(window.__prime) window.__prime.shot=1;
+
+    if(document.getElementById('c-website').value){ return; } /* bot */
+
+    var email=document.getElementById('c-email'),
+        subject=document.getElementById('c-subject'),
+        message=document.getElementById('c-message'),
+        consent=document.getElementById('c-consent');
+
+    if(!email.value || email.value.indexOf('@')<1){
+      show('err',I18N.errEmail); email.focus(); return;
+    }
+    if(!subject.value.trim()){ show('err',I18N.errSubject); subject.focus(); return; }
+    if(!message.value.trim()){ show('err',I18N.errMessage); message.focus(); return; }
+    if(!consent.checked){ show('err',I18N.errConsent); consent.focus(); return; }
+
+    if(location.protocol==='file:'){
+      show('ok',I18N.localPreview);
+      return;
+    }
+
+    btn.disabled=true; lab.textContent=I18N.sending;
+    var body={
+      access_key: WEB3FORMS_KEY,
+      name: document.getElementById('c-name').value,
+      email: email.value,
+      subject: subject.value,
+      message: message.value,
+      from_name: 'pumpolino.com'
+    };
+    fetch('https://api.web3forms.com/submit',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(body)
+    }).then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d && d.success){
+          show('ok',I18N.sendOk);
+          form.reset();
+          Array.prototype.forEach.call(document.querySelectorAll('.fld canvas'),function(){});
+        } else { throw new Error('rejected'); }
+      })
+      .catch(function(){
+        show('err',I18N.sendErr);
+      })
+      .then(function(){ btn.disabled=false; lab.textContent=I18N.send; });
+  });
+})();
+
+/* ══ language switcher keeps your position on the page ══ */
+(function(){
+  var links=document.querySelectorAll('[data-lang-link]');
+  if(!links.length) return;
+  function sync(){
+    var h=location.hash||'';
+    for(var i=0;i<links.length;i++){
+      var base=links[i].getAttribute('data-lang-link');
+      links[i].setAttribute('href', base+h);
+    }
+  }
+  sync();
+  window.addEventListener('hashchange',sync);
+  window.addEventListener('scroll',function(){
+    /* reflect the section you are actually reading, not the last link clicked.
+       At the top of the page there is no section yet — switch to the top. */
+    var cur='';
+    if(window.scrollY>60){
+      var secs=document.querySelectorAll('section[id]');
+      for(var i=0;i<secs.length;i++){
+        var r=secs[i].getBoundingClientRect();
+        if(r.top<140 && r.bottom>140) cur='#'+secs[i].id;
+      }
+    }
+    for(var j=0;j<links.length;j++) links[j].setAttribute('href', links[j].getAttribute('data-lang-link')+cur);
+  },{passive:true});
+})();
+
+/* ══ resize: rescale surfaces, never reload ══ */
+(function(){
+  var rt;
+  window.addEventListener('resize',function(){
+    clearTimeout(rt);
+    rt=setTimeout(function(){
+      var dpr=Math.min(2, window.devicePixelRatio||1), i, k;
+      var hero=document.getElementById('f-hero');
+      if(hero && hero.parentNode){
+        hero.style.width=hero.parentNode.offsetWidth+'px';
+        hero.style.height=hero.parentNode.offsetHeight+'px';
+      }
+      for(i=0;i<insts.length;i++){
+        var n=insts[i], cw=n.cv.clientWidth, ch=n.cv.clientHeight||n.lh;
+        if(!cw||!n.lw) continue;
+        n.cv.width=Math.round(cw*dpr); n.cv.height=Math.round(ch*dpr);
+        n.ctx.setTransform(dpr*cw/n.lw, 0, 0, dpr*ch/n.lh, 0, 0);
+        if(n.still){ for(k=0;k<180;k++) n.step(); }
+      }
+    },180);
+  });
+})();
+
+if(!REDUCE) requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
